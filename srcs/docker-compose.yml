@@ -1,0 +1,78 @@
+services:
+  mariadb:
+    container_name: mariadb
+    image: mariadb
+    build: ./requirements/mariadb
+    restart: on-failure
+    networks:
+      - inception
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    secrets:
+      - db_password
+      - db_root_password
+    env_file:
+      - .env
+
+  wordpress:
+    container_name: wordpress
+    image: wordpress
+    build: ./requirements/wordpress
+    restart: on-failure
+    networks:
+      - inception
+    volumes:
+      - wordpress_data:/var/www/html
+    secrets:
+      - db_password
+      - wp_admin_password
+      - wp_user_password
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+
+  nginx:
+    container_name: nginx
+    image: nginx
+    build: ./requirements/nginx
+    restart: on-failure
+    ports:
+      - "443:443"
+    networks:
+      - inception
+    volumes:
+      - wordpress_data:/var/www/html
+    depends_on:
+      - wordpress
+
+networks:
+  inception:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+    name: mariadb_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/nroussy/data/mariadb
+
+  wordpress_data:
+    name: wordpress_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/nroussy/data/wordpress
+
+secrets:
+  db_password:
+    file: ../secrets/db_password.txt
+  db_root_password:
+    file: ../secrets/db_root_password.txt
+  wp_admin_password:
+    file: ../secrets/wp_admin_password.txt
+  wp_user_password:
+    file: ../secrets/wp_user_password.txt
