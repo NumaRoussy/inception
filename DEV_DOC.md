@@ -1,25 +1,73 @@
-# Documentation Développeur — Inception
+# Developer Documentation — Inception
 
-## 1. Mise en place de l'environnement depuis zéro
-### Prérequis
-* Une machine virtuelle sous Debian 12 équipée de `docker`, du plugin `docker compose`, de `make` et de `git`.
-* Les dossiers de stockage créés sur l'hôte : `/home/nroussy/data/mariadb` et `/home/nroussy/data/wordpress`[cite: 1, 3, 6].
+## 1. Setting Up the Environment from Scratch
+### Prerequisites
+- A Debian Virtual Machine with `docker`, `docker-compose-plugin` (v2), `make`, and `git` installed.
+- Host storage directories created and owned by `nroussy`:
+  ```bash
+  mkdir -p /home/nroussy/data/mariadb /home/nroussy/data/wordpress
+  ```
 
-### Configuration et Secrets
-1. **Fichier `.env`** : Créer le fichier `srcs/.env` (à partir de `srcs/.env.example`) pour définir le domaine `nroussy.42.fr` ainsi que les variables de configuration MySQL et WordPress.
-2. **Dossier `secrets/`** : Créer le dossier `secrets/` à la racine du dépôt et y placer les fichiers contenant les mots de passe (`db_password.txt`, `db_root_password.txt`, `credentials.txt`)[cite: 1, 9].
+### Configuration Files & Secrets
+1. **Environment File (`srcs/.env`)**: Copy the template and set your variables:
+   ```bash
+   cp srcs/.env.example srcs/.env
+   ```
+2. **Docker Secrets (`secrets/`)**: Create the `secrets/` directory at the root of the repository and populate the password files:
+   - `secrets/db_password.txt`
+   - `secrets/db_root_password.txt`
+   - `secrets/credentials.txt` (or `wp_admin_password.txt` / `wp_user_password.txt`)
 
-## 2. Construction et lancement (Makefile & Docker Compose)
-Le `Makefile` pilote `srcs/docker-compose.yml` avec l'option `-f`[cite: 1, 3] :
-* `make` ou `make all` : Crée les répertoires de données et lance `docker compose -f srcs/docker-compose.yml up -d --build`[cite: 3].
-* `make down` : Exécute `docker compose -f srcs/docker-compose.yml down` (arrête les conteneurs et détruit le réseau privé)[cite: 3, 4].
-* `make clean` : Arrête et supprime les conteneurs ainsi que le réseau[cite: 3].
-* `make fclean` : Exécute `docker compose -f srcs/docker-compose.yml down --volumes --rmi all` et supprime les fichiers dans `/home/nroussy/data/*`[cite: 3].
-* `make re` : Exécute `fclean` puis `all` pour reconstruire l'infrastructure à neuf[cite: 3].
+## 2. Building and Launching the Project
+The `Makefile` orchestrates `srcs/docker-compose.yml`:
+- `make` / `make all`: Creates `/home/nroussy/data/*` directories and runs `docker compose -f srcs/docker-compose.yml up -d --build`.
+- `make down`: Stops and removes containers and the custom network (`docker compose -f srcs/docker-compose.yml down`).
+- `make clean`: Alias for `down`.
+- `make fclean`: Removes containers, networks, all built images (`--rmi all`), volumes (`--volumes`), and wipes `/home/nroussy/data/*`.
+- `make re`: Runs `fclean` followed by `all`.
 
-## 3. Commandes utiles et aide-mémoire (Correction / Gestion)
-Voici les commandes essentielles pour inspecter et tester les conteneurs, le réseau et la base de données lors de l'évaluation :
+## 3. Useful Management & Evaluation Commands (Aide-mémoire correction)
 
-* **Connaître l'IP** :
+- **Find VM IP (Connaître IP)**:
   ```bash
   ip a
+  ```
+- **Open SOCKS5 proxy from host (Ouvrir proxy SOCKS)**:
+  ```bash
+  ssh -D 9050 nroussy@192.168.56.101 -N
+  ```
+- **List project containers without `docker ps` (Test relou au lieu de `docker ps`)**:
+  ```bash
+  docker compose -p srcs ps
+  ```
+- **Inspect Docker network (Plus de détail sur un réseau Docker)**:
+  ```bash
+  docker network inspect srcs_inception
+  ```
+- **Test HTTPS response (Tester connexion)**:
+  ```bash
+  curl -k [https://nroussy.42.fr](https://nroussy.42.fr)
+  ```
+- **Access MariaDB and inspect tables (Accéder à MariaDB et afficher les tables)**:
+  - Open MariaDB CLI (Accéder à MariaDB):
+    ```bash
+    docker exec -it mariadb mariadb -u root -p
+    ```
+  - List databases (Afficher les bases de données):
+    ```sql
+    SHOW DATABASES;
+    ```
+  - Select WordPress database (Choisir wordpress):
+    ```sql
+    USE wordpress;
+    ```
+  - List WordPress tables (Afficher les tables de wordpress):
+    ```sql
+    SHOW TABLES;
+    ```
+
+## 4. Data Storage and Persistence
+- **Storage Location**: All persistent data is stored on the host VM under `/home/nroussy/data/`:
+  - `/home/nroussy/data/mariadb`: Raw MariaDB database files (mounted to `/var/lib/mysql` in the `mariadb` container).
+  - `/home/nroussy/data/wordpress`: WordPress core files, themes, plugins, and `wp-config.php` (mounted to `/var/www/html` in both `wordpress` and `nginx` containers).
+- **Persistence Mechanism**: Configured in `srcs/docker-compose.yml` using named Docker volumes with `driver: local`, `o: bind`, and `type: none`. When containers are stopped (`make down`) or crash, all files and database records remain intact on the host disk.
