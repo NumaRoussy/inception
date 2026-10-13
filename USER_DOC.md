@@ -1,30 +1,46 @@
-# Documentation Utilisateur — Inception
+# User Documentation — Inception
 
-## 1. Services fournis par l'infrastructure
-Cette pile (stack) déploie un site web WordPress sécurisé à l'aide de trois conteneurs isolés[cite: 1, 5] :
-* **NGINX** : Serveur web servant de point d'entrée unique à l'infrastructure, accessible uniquement via le port `443` (HTTPS avec protocoles TLSv1.2 et TLSv1.3)[cite: 1, 5, 6].
-* **WordPress (PHP-FPM)** : Système de gestion de contenu (CMS) qui exécute le code PHP du site sur le port interne `9000`[cite: 1, 3, 5].
-* **MariaDB** : Serveur de base de données relationnelle qui stocke les contenus et les utilisateurs du site sur le port interne `3306`[cite: 1, 3, 5].
+## 1. Provided Services
+This stack provides a complete WordPress website running across three containers:
+- **NGINX**: Secure HTTPS web server acting as the single entry point on port `443` (`TLSv1.2` / `TLSv1.3`).
+- **WordPress (PHP-FPM)**: Content Management System running the website on internal port `9000`.
+- **MariaDB**: SQL database storing website content and user accounts on internal port `3306`.
 
-## 2. Démarrer et arrêter le projet
-Toutes les commandes s'exécutent depuis la racine du dépôt via le `Makefile`[cite: 1, 3] :
-* **Démarrer le projet** : `make` (construit les images et lance les conteneurs en arrière-plan).
-* **Arrêter le projet** : `make down` (arrête et supprime les conteneurs ainsi que le réseau sans effacer les données).
-* **Redémarrer à zéro** : `make re` (supprime tout, y compris les volumes de données, et reconstruit l'infrastructure)[cite: 3].
+## 2. Starting and Stopping the Project
+Run the following commands from the root of the repository using the `Makefile`:
+- **Start the project**: `make` (builds the images and starts all containers in the background).
+- **Stop the project**: `make down` (stops and removes the containers while keeping the website data intact).
+- **Restart from scratch**: `make re` (deletes containers, volumes, and persistent data, then rebuilds everything).
 
-## 3. Accéder au site web et au panneau d'administration
-Pour accéder au site depuis la machine hôte sans utiliser les droits `sudo` :
-* **Connaître l'IP de la VM** : `ip a` (repérer l'adresse sur l'interface `enp0s8`, par ex. `192.168.56.101`)[cite: 2, 6, 7].
-* **Ouvrir le proxy SOCKS** : `ssh -D 9050 nroussy@192.168.56.101 -N` (puis configurer Firefox avec le proxy SOCKS v5 sur l'hôte `127.0.0.1`, port `9050`, en cochant « Déporter la résolution DNS lors de l'utilisation de SOCKS v5 »)[cite: 3, 7].
-* **Accès au site web** : [https://nroussy.42.fr](https://nroussy.42.fr) (accepter l'avertissement lié au certificat TLS auto-signé)[cite: 3, 5].
-* **Accès au panneau d'administration** : [https://nroussy.42.fr/wp-login.php](https://nroussy.42.fr/wp-login.php)[cite: 3].
+## 3. Accessing the Website and Administration Panel
+If you do not have `sudo` rights on the host machine to edit `/etc/hosts`, use an SSH SOCKS5 proxy:
+- **Check VM IP address (Connaître IP)**:
+  ```bash
+  ip a
+  ```
+- **Open SOCKS proxy (Ouvrir proxy SOCKS)**:
+  ```bash
+  ssh -D 9050 nroussy@192.168.56.101 -N
+  ```
+  *(Configure Firefox to use SOCKS v5 proxy `127.0.0.1` on port `9050` and check "Proxy DNS when using SOCKS v5").*
+- **Website URL**: `https://nroussy.42.fr` (accept the self-signed certificate warning).
+- **Administration Panel URL**: `https://nroussy.42.fr/wp-login.php`
 
-## 4. Localiser et gérer les identifiants (Credentials)
-Pour des raisons de sécurité, aucun mot de passe n'est présent dans les `Dockerfile` ni suivi par Git :
-* **Configuration générale (`srcs/.env`)** : Contient le nom de domaine (`DOMAIN_NAME=nroussy.42.fr`), le nom de la base et les identifiants des deux utilisateurs WordPress (dont l'administrateur `nroussy`, qui ne contient pas le mot « admin »)[cite: 1, 3].
-* **Mots de passe (`secrets/`)** : Les mots de passe sont stockés localement à la racine dans le dossier `secrets/` (`db_password.txt`, `db_root_password.txt`, `credentials.txt` / `wp_admin_password.txt`)[cite: 1, 3, 9].
+## 4. Locating and Managing Credentials
+All sensitive credentials are kept local and ignored by Git:
+- **Environment variables (`srcs/.env`)**: Stores the domain name (`nroussy.42.fr`), database name (`wordpress`), database user, and the two WordPress usernames/emails.
+- **Passwords (`secrets/`)**: Stored in plain text files inside the `secrets/` directory at the root of the repository (`db_password.txt`, `db_root_password.txt`, and WordPress password files).
 
-## 5. Vérifier le bon fonctionnement des services
-* **Vérifier l'état des conteneurs (alternative à `docker ps`)** : `docker compose -p srcs ps` (ou `make status`)[cite: 3, 4].
-* **Tester la connexion HTTPS** : `curl -k https://nroussy.42.fr`[cite: 3, 6].
-* **Consulter les journaux (logs)** : `make logs`[cite: 3].
+## 5. Checking that Services are Running Correctly
+- **Check container status (Test relou au lieu de `docker ps`)**:
+  ```bash
+  docker compose -p srcs ps
+  ```
+- **Test HTTPS connection (Tester connexion)**:
+  ```bash
+  curl -k [https://nroussy.42.fr](https://nroussy.42.fr)
+  ```
+- **Follow container logs**:
+  ```bash
+  make logs
+  ```
