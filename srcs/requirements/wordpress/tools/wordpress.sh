@@ -8,7 +8,7 @@ WP_USER_PASSWORD=$(cat /run/secrets/wp_user_password)
 
 cd /var/www/html
 
-# 2. Attente que MariaDB soit joignable
+# 2. Attente que MariaDB soit joignable sur le port 3306
 echo "Attente de la disponibilité de MariaDB..."
 while ! mariadb-admin ping -h mariadb -u "${MYSQL_USER}" -p"${DB_PASSWORD}" --silent; do
     sleep 2
